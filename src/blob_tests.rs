@@ -71,7 +71,7 @@ fn blob_buffer_alignment()
 				(
 					// Allocates a new blob buffer, asserting that it's aligned
 
-					UnpatchedBlob::new(),
+					UnpatchedBlob::new_with_header(),
 
 					// Try to throw extra wrenches into whatever allocation machinery
 					//  Vec uses by making awkwardly-sized allocations
@@ -209,6 +209,6 @@ fn padding_bytes_needed_for()
 #[test]
 fn new_blob()
 {
-	let blob = UnpatchedBlob::new(); 
+	let blob = UnpatchedBlob::new_with_header(); 
 	ASSERT! { blob.bytes.len() == BlobHeader::BYTE_COUNT }
 }

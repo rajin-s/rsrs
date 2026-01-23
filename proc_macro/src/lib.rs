@@ -24,12 +24,10 @@ pub fn derive_write_blob(input_stream : proc_macro::TokenStream) -> proc_macro::
 				#[automatically_derived]
 				impl WriteBlob for #struct_name
 				{
-					fn unpatch_references<Pass>(
+					fn unpatch_references<Pass : BlobWriterPass>(
 						&self,
 						pass : &mut Pass,
 						self_location : BlobLocation)
-					where
-						Pass : BlobWriterPass
 					{
 						#(
 							self.#field_names.unpatch_references(

@@ -22,23 +22,23 @@ pub enum TypeElement
 	Unnamed(&'static TypeInfo),
 }
 
+
+
 // Helper structs to differentiate "name-sensitive hash" vs one purely
 //  based on size and elements (including element order)
 
 struct HashTypeInfoWithNames<'a>(&'a TypeInfo);
 struct HashTypeInfoWithoutNames<'a>(&'a TypeInfo);
 
-impl<'a> Hash for HashTypeInfoWithNames<'a>
+impl Hash for HashTypeInfoWithNames<'_>
 {
-	fn hash<H>(&self, h : &mut H)
-	where
-		H : Hasher
+	fn hash<H : Hasher>(&self, hasher : &mut H)
 	{
 		let Self(info) = self;
 
-		info.name.hash(h);
-		info.byte_count.hash(h);
-		info.alignment_size.hash(h);
+		info.name.hash(hasher);
+		info.byte_count.hash(hasher);
+		info.alignment_size.hash(hasher);
 
 		for element in info.elements
 		{
@@ -46,41 +46,39 @@ impl<'a> Hash for HashTypeInfoWithNames<'a>
 			{
 				TypeElement::Named(name, element_info) =>
 				{
-					name.hash(h);
-					Self(element_info).hash(h);
+					name.hash(hasher);
+					Self(element_info).hash(hasher);
 				}
 				TypeElement::Unnamed(element_info) =>
 				{
-					Self(element_info).hash(h);
+					Self(element_info).hash(hasher);
 				}
 			}
 		}
 	}
 }
 
-impl<'a> Hash for HashTypeInfoWithoutNames<'a>
+impl Hash for HashTypeInfoWithoutNames<'_>
 {
-	fn hash<H>(&self, h : &mut H)
-	where
-		H : Hasher
+	fn hash<H : Hasher>(&self, hasher : &mut H)
 	{
 		let Self(info) = self;
-
+		
 		// NOTE (rs) "Without names" only applies to field names. The
 		//  name of the type itself is still important! Otherwise, there
 		//  would be no way to differentiate eg. f32 vs i32
 
-		info.name.hash(h);
+		info.name.hash(hasher);
 
-		info.byte_count.hash(h);
-		info.alignment_size.hash(h);
+		info.byte_count.hash(hasher);
+		info.alignment_size.hash(hasher);
 
 		for element in info.elements
 		{
 			match element
 			{
 				TypeElement::Named(_, element_info)
-				| TypeElement::Unnamed(element_info) => Self(element_info).hash(h),
+				| TypeElement::Unnamed(element_info) => Self(element_info).hash(hasher),
 			}
 		}
 	}

@@ -65,9 +65,7 @@ macro_rules! ASSERT_LAYOUT_EQ
 
 pub trait WriteBlob : GetTypeInfo
 {
-	fn unpatch_references<Pass>(&self, pass : &mut Pass, self_location : BlobLocation)
-	where
-		Pass : BlobWriterPass;
+	fn unpatch_references<Pass : BlobWriterPass>(&self, pass : &mut Pass, self_location : BlobLocation);
 }
 
 
@@ -78,9 +76,6 @@ pub trait WriteBlob : GetTypeInfo
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, GetTypeInfo)]
 pub struct BlobLocation
 {
-	// BB (rs) Could save on blob size if these were 32-bit offsets... but that would
-	//  impose a theoretical max of 4GB for blob size...
-
 	offset : usize
 }
 
@@ -370,7 +365,7 @@ impl UnpatchedBlob
 {
 	/// Creates a new empty, unpatched blob to be written to
 
-	fn new() -> Self
+	fn new_with_header() -> Self
 	{
 		const EMPTY_HEADER : BlobHeader = BlobHeader
 		{
@@ -404,28 +399,23 @@ impl UnpatchedBlob
 		blob
 	}
 
-	pub fn write<T>(value : &T) -> Self
-	where
-		T : WriteBlob
+	pub fn write<T : WriteBlob>(value : &T) -> Self
 	{
 		write_blob(value)
 	}
 
-	fn get_header_mut(&mut self) -> &mut BlobHeader
+	unsafe fn get_header_mut(&mut self) -> &mut BlobHeader
 	{
-		// NOTE (rs) Safe, since we always initialize a Blob with a valid header
+		// NOTE (rs) Only safe for blobs created with a valid header, eg. those created manually via new()
 
-		unsafe
-		{
-			let header = self.location_as_mut(BlobLocation::start());
-			header.assume_init_mut()
-		}
+		let header = self.location_as_mut(BlobLocation::start());
+		header.assume_init_mut()
 	}
 	
 	/// Reinterpret a position in the data blob as an arbitrary, possibly uninitialized data type.
 	/// 
 	/// Note that we consider getting the MaybeUninit reference to be "safe," but using it for
-	/// anything isn't
+	/// anything isn't safe, on account of the lack of initialization
 	
 	fn location_as_mut<T>(&mut self, location : BlobLocation) -> &mut std::mem::MaybeUninit<T>
 	{
@@ -487,8 +477,7 @@ impl<T> Blob for PatchedBlob<T>
 	}
 }
 
-impl<T> PatchedBlob<T>
-where T : WriteBlob
+impl<T : WriteBlob> PatchedBlob<T>
 {
 	/// # Safety
 	/// 
@@ -779,7 +768,7 @@ where
 
 	let mut writer = BlobWriter
 	{
-		blob 			: UnpatchedBlob::new(),
+		blob 			: UnpatchedBlob::new_with_header(),
 		vec_locations 	: Vec::new(),
 		box_locations	: Vec::new(),
 	};
@@ -858,7 +847,9 @@ where
 
 	// Track metadata in the blob header, starting with the data region
 
-	let header = writer.blob.get_header_mut();
+	// NOTE (rs) Safe -- blob was initialized with a valid header
+
+	let header = unsafe { writer.blob.get_header_mut() };
 
 	header.data_byte_count = data_end_location.offset - data_start_location.offset;
 	header.data_location = data_start_location;
