@@ -63,7 +63,7 @@ impl Hash for HashTypeInfoWithoutNames<'_>
 	fn hash<H : Hasher>(&self, hasher : &mut H)
 	{
 		let Self(info) = self;
-		
+
 		// NOTE (rs) "Without names" only applies to field names. The
 		//  name of the type itself is still important! Otherwise, there
 		//  would be no way to differentiate eg. f32 vs i32
@@ -187,8 +187,8 @@ macro_rules! impl_get_type_info_atomic
 
 impl_get_type_info_atomic!
 {
-	i8, i16, i32, i64, isize,
-	u8, u16, u32, u64, usize,
+	i8, i16, i32, i64, i128, isize,
+	u8, u16, u32, u64, u128, usize,
 	f32, f64,
 	bool,
 	String, &'static str,
