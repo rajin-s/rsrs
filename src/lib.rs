@@ -43,5 +43,5 @@ pub use type_signature::*;
 #[should_panic]
 fn valid_build_config()
 {
-	ASSERT! { false, "Expected panic_on_asserts for tests" }
+	FAIL! { "Expected panic_on_asserts for tests" }
 }
