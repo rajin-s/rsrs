@@ -266,16 +266,16 @@ pub fn print_nice_backtrace()
 		{
 			const PREFIX_TRIMMED : &str = "... ";
 
-			let start_byte_offset = match function
+			let start_char_index = match function
 											.char_indices()
 											.rev()
 											.nth(MAX_FUNCTION_LENGTH - 1)
 			{
-				Some((byte_index, _ch)) => byte_index,
+				Some((char_index, _ch)) => char_index,
 				None => 0,
 			};
 
-			function = format!("{}{}", PREFIX_TRIMMED, &function.as_str()[start_byte_offset..]);
+			function = format!("{}{}", PREFIX_TRIMMED, &function.as_str()[start_char_index..]);
 		}
 
 		frames.push(Frame { function, source });
@@ -307,7 +307,23 @@ pub fn print_nice_backtrace()
 	
 	fn is_internal_frame(frame : &Frame) -> bool
 	{
-		frame.source.contains("/rustc/")
+		let internal_source_directories =
+		[
+			"/rustc/",
+			"\\rustc\\",
+			"/rustlib/",
+			"\\rustlib\\",
+		];
+
+		for internal_source_dir in internal_source_directories
+		{
+			if frame.source.contains(internal_source_dir)
+			{
+				return true;
+			}
+		}
+
+		false
 	}
 
 	let mut iter_frames = frames.iter().enumerate();
