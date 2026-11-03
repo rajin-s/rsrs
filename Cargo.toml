@@ -15,8 +15,11 @@ default = [
 # Assert features
 
 enable_asserts = []
-interactive_failures = ["enable_asserts"]
-panic_on_failures = ["enable_asserts"]
+
+failure_mode_panic = ["enable_asserts"]
+failure_mode_break = ["enable_asserts"]
+failure_mode_break_and_panic = ["enable_asserts"]
+failure_mode_interactive = ["enable_asserts"]
 
 # ID features
 
@@ -25,13 +28,13 @@ name_cache = []
 # Build Modes
 
 "mode.normal" = [
-	"interactive_failures",
+	"failure_mode_interactive",
 	"name_cache",
 ]
 
 "mode.test" = [
-	"panic_on_failures",
-	"name_cache"
+	"failure_mode_panic",
+	"name_cache",
 ]
 
 "mode.release" = [

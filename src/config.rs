@@ -4,31 +4,18 @@
 #[derive(Debug, PartialEq, Eq)]
 pub enum FailureMode
 {
-	Panic,
 	Ignore,
+	Panic,
+	Break,
+	BreakAndPanic,
 	Interactive,
 }
 
-#[cfg(feature="panic_on_failures")]
-mod cfg
-{
-	use super::FailureMode;
-	
-	pub const ENABLE_ASSERTS 	: bool 			= true;
-	pub const FAILURE_MODE 		: FailureMode	= FailureMode::Panic;
-}
+pub const ENABLE_ASSERTS : bool = cfg!(feature="enable_asserts");
 
-#[cfg(not(feature="panic_on_failures"))]
-mod cfg
-{
-	use super::FailureMode;
-
-	#[cfg(feature="enable_asserts")] 			pub const ENABLE_ASSERTS 	: bool 			= true;
-	#[cfg(not(feature="enable_asserts"))] 		pub const ENABLE_ASSERTS 	: bool 			= false;
-
-	#[cfg(feature="interactive_failures")] 		pub const FAILURE_MODE 		: FailureMode	= FailureMode::Interactive;
-	#[cfg(not(feature="interactive_failures"))] pub const FAILURE_MODE 		: FailureMode	= FailureMode::Ignore;
-}
-
-pub use cfg::*;
-
+pub const FAILURE_MODE : FailureMode =
+	if 		cfg!(feature="failure_mode_panic") { FailureMode::Panic }
+	else if cfg!(feature="failure_mode_break") { FailureMode::Break }
+	else if cfg!(feature="failure_mode_break_and_panic") { FailureMode::BreakAndPanic }
+	else if cfg!(feature="failure_mode_interactive") { FailureMode::Interactive }
+	else { FailureMode::Ignore };

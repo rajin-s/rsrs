@@ -22,6 +22,8 @@ macro_rules! debug_break
 	() => { std::arch::asm!("int3"); }
 }
 
+
+
 // Common macro for validating some code assumption. Checks can be compiled out
 //  entirely (based on config features), so shouldn't produce any side effects.
 
@@ -59,8 +61,16 @@ macro_rules! ASSERT
 
 				match CHECK_INFO.on_fail()
 				{
-					assert_internal::OnFailure::Ignore 	=> {}
-					assert_internal::OnFailure::Break 	=> { debug_break!(); }
+					assert_internal::OnFailure::Ignore => {}
+					assert_internal::OnFailure::Break =>
+					{
+						debug_break!();
+					}
+					assert_internal::OnFailure::BreakAndPanic =>
+					{
+						debug_break!();
+						CHECK_INFO.panic();
+					}
 				}
 			}
 		}
@@ -94,5 +104,5 @@ macro_rules! FAIL
 /// run checks in addition to handling error cases.
 
 pub type DoAsserts = u8;
-pub const TRIP_ASSERTS 	: DoAsserts = 0;
-pub const SKIP_ASSERTS 	: DoAsserts = 1;
+pub const TRIP_ASSERTS : DoAsserts = 0;
+pub const SKIP_ASSERTS : DoAsserts = 1;

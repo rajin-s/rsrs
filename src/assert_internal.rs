@@ -10,6 +10,7 @@ pub enum OnFailure
 {
 	Ignore,
 	Break,
+	BreakAndPanic,
 }
 
 pub struct CheckInfo
@@ -53,9 +54,18 @@ impl CheckInfo
 			{
 				OnFailure::Ignore
 			}
+			config::FailureMode::Break =>
+			{
+				OnFailure::Break
+			}
 			config::FailureMode::Panic =>
 			{
-				panic!("panic on failed assert: {} @ {}:{}", self.check_string, self.file_name(), self.line_number);
+				self.panic();
+				OnFailure::Ignore
+			}
+			config::FailureMode::BreakAndPanic =>
+			{
+				OnFailure::BreakAndPanic
 			}
 			config::FailureMode::Interactive =>
 			{
@@ -135,6 +145,11 @@ impl CheckInfo
 				}
 			}
 		}
+	}
+
+	pub fn panic(&self)
+	{
+		panic!("panic on failed assert: {} @ {}:{}", self.check_string, self.file_name(), self.line_number);
 	}
 }
 
