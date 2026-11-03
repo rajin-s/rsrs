@@ -18,8 +18,17 @@ pub struct TypeInfo
 #[derive(Debug, Clone)]
 pub enum TypeElement
 {
+	/// Upstream type also has a name that we might care about
+	
 	Named(&'static str, &'static TypeInfo),
+
+	/// Upstream type has no name -- order is all we care about
+
 	Unnamed(&'static TypeInfo),
+
+	/// Upstream type is only referenced -- its name is all that matters, not size, etc.
+
+	UnnamedRef(&'static TypeInfo),
 }
 
 
@@ -53,6 +62,10 @@ impl Hash for HashTypeInfoWithNames<'_>
 				{
 					Self(element_info).hash(hasher);
 				}
+				TypeElement::UnnamedRef(element_info) =>
+				{
+					element_info.name.hash(hasher);
+				}
 			}
 		}
 	}
@@ -78,7 +91,14 @@ impl Hash for HashTypeInfoWithoutNames<'_>
 			match element
 			{
 				TypeElement::Named(_, element_info)
-				| TypeElement::Unnamed(element_info) => Self(element_info).hash(hasher),
+				| TypeElement::Unnamed(element_info) =>
+				{
+					Self(element_info).hash(hasher);
+				}
+				TypeElement::UnnamedRef(element_info) =>
+				{
+					element_info.name.hash(hasher);
+				}
 			}
 		}
 	}
@@ -192,6 +212,7 @@ impl_get_type_info_atomic!
 	f32, f64,
 	bool,
 	String, &'static str,
+	(),
 }
 
 

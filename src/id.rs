@@ -8,14 +8,14 @@ use std::hash::{ Hash, Hasher, DefaultHasher, BuildHasher };
 /// For use with `Id`, to specify different named types.
 /// 
 /// ```rust
-/// use rsrs::{ Id, IdType };
+/// use rsrs::{ Id, Identifiable };
 /// 
 /// struct Object
 /// {
 ///     name : Id<Self>
 /// }
 /// 
-/// impl IdType for Object
+/// impl Identifiable for Object
 /// {
 ///     fn id_display_prefix() -> &'static str
 ///     {
@@ -24,12 +24,13 @@ use std::hash::{ Hash, Hasher, DefaultHasher, BuildHasher };
 /// }
 /// ```
 
-pub trait IdType
+pub trait Identifiable
 {
 	fn id_display_prefix() -> &'static str;
 }
 
 
+pub type IdValue = u64;
 
 /// An `Id` is effectively a pre-hashed string, for efficient comparison, especially when
 /// using pre-computed `Id`s (eg. loaded from a file).
@@ -42,14 +43,19 @@ pub trait IdType
 /// robust APIs. All types of `Id` end up in the same generic name table for reverse-lookup.
 
 pub struct Id<T>
-{
-	value 	: u64,
+{	
+	value 	: IdValue,
 	_t		: std::marker::PhantomData<T>,
 }
 
 impl<T> Id<T>
 {
-	pub fn compute_raw_value(text : &str) -> u64
+	pub const fn empty() -> Self
+	{
+		Self::from_raw_value(0)
+	}
+
+	pub fn compute_raw_value(text : &str) -> IdValue
 	{
 		let mut hasher = DefaultHasher::new();
 		text.hash(&mut hasher);
@@ -62,7 +68,7 @@ impl<T> Id<T>
 		let id = Self
 		{
 			value 	: Self::compute_raw_value(text),
-			_t		: Default::default(),
+			_t 		: std::marker::PhantomData {}
 		};
 
 		id_internal::try_ensure_cached_name(id, text);
@@ -70,21 +76,21 @@ impl<T> Id<T>
 		id
 	}
 
-	pub fn from_raw_value(value : u64) -> Self
+	pub const fn from_raw_value(value : IdValue) -> Self
 	{
 		Self
 		{
 			value,
-			_t : Default::default(),
+			_t : std::marker::PhantomData {}
 		}
 	}
 	
-	pub fn from<Other>(id : Id<Other>) -> Self
+	pub const fn from<Other>(id : Id<Other>) -> Self
 	{
 		Self::from_raw_value(id.raw_value())
 	}
 
-	pub fn raw_value(&self) -> u64
+	pub const fn raw_value(&self) -> IdValue
 	{
 		self.value
 	}
@@ -140,9 +146,24 @@ impl<T> Hash for Id<T>
 	}
 }
 
+impl<T> TypeElements<1> for Id<T>
+where
+	T : GetTypeInfo
+{
+	const TYPE_ELEMENT_ARRAY : [TypeElement; 1] = [TypeElement::UnnamedRef(&T::TYPE_INFO)];
+}
+
+impl<T> GetTypeInfo for Id<T>
+where
+	T : GetTypeInfo
+{
+	const TYPE_NAME : &'static str = "Id";
+	const TYPE_ELEMENTS : &[TypeElement] = &Self::TYPE_ELEMENT_ARRAY;
+}
+
 impl<T> std::fmt::Display for Id<T>
 where
-	T : IdType
+	T : Identifiable
 {
 	fn fmt(&self, formatter : &mut std::fmt::Formatter) -> std::fmt::Result
 	{
@@ -158,7 +179,7 @@ where
 
 impl<T> std::fmt::Debug for Id<T>
 where
-	T : IdType
+	T : Identifiable
 {
 	fn fmt(&self, formatter : &mut std::fmt::Formatter<'_>) -> std::fmt::Result
 	{
@@ -195,7 +216,7 @@ impl<T, TId> IdMapExtensions for IdMap<T, TId>
 // Generic `Name` type can be used for convenience when disambiguation between
 //  types of named objects isn't important
 
-impl IdType for ()
+impl Identifiable for ()
 {
 	fn id_display_prefix() -> &'static str
 	{
@@ -219,7 +240,7 @@ mod id_internal
 	#[derive(Default)]
 	pub struct IdHasher
 	{
-		value : u64,
+		value : IdValue,
 	}
 	
 	impl IdHasher
@@ -235,7 +256,7 @@ mod id_internal
 	
 	impl Hasher for IdHasher
 	{
-		fn finish(&self) -> u64
+		fn finish(&self) -> IdValue
 		{
 			self.value
 		}
@@ -243,10 +264,10 @@ mod id_internal
 		fn write(&mut self, bytes: &[u8])
 		{
 			debug_assert_eq!(self.value, 0);
-			debug_assert_eq!(bytes.len(), 8);
+			debug_assert_eq!(bytes.len(), size_of::<IdValue>());
 	
-			let bytes_as_u64 = bytes as *const [u8] as *const u8 as *const u64;
-			let new_value = unsafe { *bytes_as_u64 };
+			let bytes_as_value = bytes as *const [u8] as *const u8 as *const IdValue;
+			let new_value = unsafe { *bytes_as_value };
 	
 			self.value = new_value;
 		}
@@ -371,7 +392,7 @@ fn test_name_types()
 	let expected_value = 16156531084128653017u64;
 
 	struct Foo {}
-	impl IdType for Foo
+	impl Identifiable for Foo
 	{
 		fn id_display_prefix() -> &'static str
 		{
